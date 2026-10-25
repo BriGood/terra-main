@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import AddToCart from './AddToCart';
+import { useProductImageJump } from './ProductImageJump';
 import { formatPrice } from '@/lib/shopify';
 import type { ProductVariant } from '@/lib/shopify';
 
@@ -29,6 +30,7 @@ export default function VariantSelector({ variants, storeDomain, productTitle, p
   const [selectedId, setSelectedId] = useState(variants[0]?.id ?? '');
   const [notifyEmail, setNotifyEmail] = useState('');
   const [notifyState, setNotifyState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const { showImage } = useProductImageJump();
 
   const selected = variants.find((v) => v.id === selectedId) ?? variants[0];
   const colorOption = selected?.selectedOptions.find((o) => o.name === 'Color');
@@ -87,22 +89,27 @@ export default function VariantSelector({ variants, storeDomain, productTitle, p
               const swatch = colorSwatches[color.toLowerCase()];
               // Shopify swatch wins; then brand fallback map; then a neutral swatch
               // so a color is never dropped just because it lacks a hex.
+              // The swatch's image is deliberately not drawn: Shopify shares color
+              // entries across products, so a photo set for one product would
+              // show on every product in that color. It steers the carousel instead.
               const hex = swatch?.color ?? COLOR_MAP[color.toLowerCase()] ?? FALLBACK_SWATCH;
-              const style = swatch?.image
-                ? { backgroundImage: `url(${swatch.image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-                : { backgroundColor: hex };
               const isSelected = v.id === selectedId;
               return (
                 <button
                   key={v.id}
-                  onClick={() => { setSelectedId(v.id); setNotifyState('idle'); setNotifyEmail(''); }}
+                  onClick={() => {
+                    setSelectedId(v.id);
+                    setNotifyState('idle');
+                    setNotifyEmail('');
+                    showImage([swatch?.image, v.image?.url]);
+                  }}
                   title={color}
                   aria-label={color}
                   className={`w-7 h-7 rounded-full transition-all cursor-pointer ring-offset-2 ring-offset-black
                     ${isSelected ? 'ring-2 ring-white' : 'ring-1 ring-[#444] hover:ring-white'}
                     ${!v.availableForSale ? 'opacity-40' : ''}
                   `}
-                  style={style}
+                  style={{ backgroundColor: hex }}
                 />
               );
             })}

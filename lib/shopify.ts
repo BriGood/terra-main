@@ -38,6 +38,7 @@ export type ProductVariant = {
   } | null;
   availableForSale: boolean;
   selectedOptions: { name: string; value: string }[];
+  image: { url: string } | null;
 };
 
 export type ProductSpecs = {
@@ -67,7 +68,9 @@ export type Product = {
   options: { name: string; values: string[] }[];
   // Native Shopify swatches for the "Color" option, keyed by lowercased value
   // (e.g. "black"). Merchant-controlled in admin, so new colors flow through
-  // automatically without code changes. `color` is a hex; `image` an optional swatch photo.
+  // automatically without code changes. `color` is a hex and fills the swatch;
+  // `image` isn't drawn — when it's one of the product's photos, picking that
+  // color jumps the carousel to it.
   colorSwatches: Record<string, { color: string | null; image: string | null }>;
   // Category for the breadcrumb trail. Curation-only collections are skipped so
   // the trail never exposes one; null when the product isn't in a public one.
@@ -94,8 +97,12 @@ export type Collection = {
 // than in Shopify: getCollections() — which feeds both the nav and the sitemap —
 // filters them out, while getCollection(handle) still fetches them by name.
 export const FEATURED_COLLECTION_HANDLE = 'featured';
+export const SHOP_ORDER_COLLECTION_HANDLE = 'shop-order';
 
-const HIDDEN_COLLECTION_HANDLES = new Set<string>([FEATURED_COLLECTION_HANDLE]);
+const HIDDEN_COLLECTION_HANDLES = new Set<string>([
+  FEATURED_COLLECTION_HANDLE,
+  SHOP_ORDER_COLLECTION_HANDLE,
+]);
 
 export function isHiddenCollection(handle: string): boolean {
   return HIDDEN_COLLECTION_HANDLES.has(handle);
@@ -220,6 +227,9 @@ export async function getProduct(handle: string): Promise<Product | null> {
             selectedOptions {
               name
               value
+            }
+            image {
+              url
             }
           }
         }
@@ -539,7 +549,7 @@ export async function getCollection(handle: string): Promise<Collection | null> 
         title
         handle
         description
-        products(first: 50) {
+        products(first: 50, sortKey: COLLECTION_DEFAULT) {
           nodes {
             id
             title

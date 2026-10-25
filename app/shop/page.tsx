@@ -1,7 +1,12 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getProducts, formatPrice } from '@/lib/shopify';
+import {
+  getProducts,
+  getCollection,
+  formatPrice,
+  SHOP_ORDER_COLLECTION_HANDLE,
+} from '@/lib/shopify';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +18,12 @@ export const metadata: Metadata = {
 };
 
 export default async function ShopPage() {
-  const products = await getProducts();
+  // Display order is curated in Shopify (the hidden "Shop Order" collection,
+  // manual sort) so products can be dragged into place in admin without a
+  // deploy. Falls back to the full catalog if that collection is missing or
+  // empty, so the page is never blank.
+  const shopOrder = await getCollection(SHOP_ORDER_COLLECTION_HANDLE).catch(() => null);
+  const products = shopOrder?.products.length ? shopOrder.products : await getProducts();
 
   return (
     <main className="bg-black text-white px-6 pt-6 pb-24 lg:px-20">

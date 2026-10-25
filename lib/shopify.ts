@@ -94,8 +94,12 @@ export type Collection = {
 // than in Shopify: getCollections() — which feeds both the nav and the sitemap —
 // filters them out, while getCollection(handle) still fetches them by name.
 export const FEATURED_COLLECTION_HANDLE = 'featured';
+export const SHOP_ORDER_COLLECTION_HANDLE = 'shop-order';
 
-const HIDDEN_COLLECTION_HANDLES = new Set<string>([FEATURED_COLLECTION_HANDLE]);
+const HIDDEN_COLLECTION_HANDLES = new Set<string>([
+  FEATURED_COLLECTION_HANDLE,
+  SHOP_ORDER_COLLECTION_HANDLE,
+]);
 
 export function isHiddenCollection(handle: string): boolean {
   return HIDDEN_COLLECTION_HANDLES.has(handle);
@@ -539,7 +543,7 @@ export async function getCollection(handle: string): Promise<Collection | null> 
         title
         handle
         description
-        products(first: 50) {
+        products(first: 50, sortKey: COLLECTION_DEFAULT) {
           nodes {
             id
             title

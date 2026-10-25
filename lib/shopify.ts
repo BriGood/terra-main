@@ -38,6 +38,7 @@ export type ProductVariant = {
   } | null;
   availableForSale: boolean;
   selectedOptions: { name: string; value: string }[];
+  image: { url: string } | null;
 };
 
 export type ProductSpecs = {
@@ -67,7 +68,9 @@ export type Product = {
   options: { name: string; values: string[] }[];
   // Native Shopify swatches for the "Color" option, keyed by lowercased value
   // (e.g. "black"). Merchant-controlled in admin, so new colors flow through
-  // automatically without code changes. `color` is a hex; `image` an optional swatch photo.
+  // automatically without code changes. `color` is a hex and fills the swatch;
+  // `image` isn't drawn — when it's one of the product's photos, picking that
+  // color jumps the carousel to it.
   colorSwatches: Record<string, { color: string | null; image: string | null }>;
   // Category for the breadcrumb trail. Curation-only collections are skipped so
   // the trail never exposes one; null when the product isn't in a public one.
@@ -224,6 +227,9 @@ export async function getProduct(handle: string): Promise<Product | null> {
             selectedOptions {
               name
               value
+            }
+            image {
+              url
             }
           }
         }

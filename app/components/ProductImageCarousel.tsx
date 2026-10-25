@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import { useState, useRef, useEffect } from 'react';
+import { imagePath, useProductImageJump } from './ProductImageJump';
 
 type Props = {
   images: { url: string; altText: string | null }[];
@@ -14,6 +15,25 @@ export default function ProductImageCarousel({ images, title }: Props) {
   const [animate, setAnimate] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const lightboxRef = useRef<HTMLDivElement>(null);
+  const { register } = useProductImageJump();
+
+  // Picking a color shows that color's photo: the desktop track moves (sliding
+  // only for a single step, like the thumbnails) and the mobile strip scrolls.
+  useEffect(() => {
+    return register((urls) => {
+      const paths = images.map((image) => imagePath(image.url));
+      for (const url of urls) {
+        const index = url ? paths.indexOf(imagePath(url)) : -1;
+        if (index === -1) continue;
+        if (index === activeIndex) return;
+        setAnimate(Math.abs(index - activeIndex) === 1);
+        setActiveIndex(index);
+        const main = scrollRef.current;
+        if (main) main.scrollTo({ left: main.clientWidth * index, behavior: 'smooth' });
+        return;
+      }
+    });
+  }, [register, images, activeIndex]);
 
   useEffect(() => {
     if (!zoomed) return;

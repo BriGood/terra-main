@@ -5,6 +5,7 @@ import { getProduct } from '@/lib/shopify';
 import { SITE_URL } from '@/lib/site';
 import ProductImageCarousel from '@/app/components/ProductImageCarousel';
 import VariantSelector from '@/app/components/VariantSelector';
+import { ProductImageJumpProvider } from '@/app/components/ProductImageJump';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 
 // Deduped so generateMetadata and the page share a single Shopify request per render.
@@ -97,72 +98,74 @@ export default async function ProductPage({
           ]}
         />
       </div>
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-6 lg:gap-12">
+      <ProductImageJumpProvider>
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-6 lg:gap-12">
 
-        {/* Images */}
-        <ProductImageCarousel images={product.images} title={product.title} />
+          {/* Images */}
+          <ProductImageCarousel images={product.images} title={product.title} />
 
-        {/* Details */}
-        <div className="flex flex-col">
-          <div className="mb-4">
-            <h1 className="text-3xl font-extrabold uppercase tracking-widest">
-              {product.title}
-            </h1>
-            {product.productType && (
-              <p className="mt-1 text-sm uppercase tracking-widest text-[#888888]">
-                {product.productType}
-              </p>
+          {/* Details */}
+          <div className="flex flex-col">
+            <div className="mb-4">
+              <h1 className="text-3xl font-extrabold uppercase tracking-widest">
+                {product.title}
+              </h1>
+              {product.productType && (
+                <p className="mt-1 text-sm uppercase tracking-widest text-[#888888]">
+                  {product.productType}
+                </p>
+              )}
+            </div>
+
+            <VariantSelector
+              variants={product.variants}
+              storeDomain={process.env.SHOPIFY_STORE_DOMAIN ?? ''}
+              productTitle={product.title}
+              productHandle={product.handle}
+              colorSwatches={product.colorSwatches}
+            />
+
+            {product.descriptionHtml && (
+              <div
+                className="text-[#888888] mt-8 leading-snug [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-2"
+                dangerouslySetInnerHTML={{ __html: product.descriptionHtml }}
+              />
+            )}
+
+            {(product.specs.dimensions || product.specs.material || product.specs.weight || product.specs.origin) && (
+              <div className="mt-12">
+                <div className="flex flex-col gap-3">
+                  {product.specs.dimensions && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-[#555] uppercase tracking-widest text-xs">Dimensions</span>
+                      <span className="text-[#888888]">{product.specs.dimensions}</span>
+                    </div>
+                  )}
+                  {product.specs.material && (
+                    <div className="flex justify-between text-sm border-t border-[#111] pt-3">
+                      <span className="text-[#555] uppercase tracking-widest text-xs">Material</span>
+                      <span className="text-[#888888]">{product.specs.material}</span>
+                    </div>
+                  )}
+                  {product.specs.weight && (
+                    <div className="flex justify-between text-sm border-t border-[#111] pt-3">
+                      <span className="text-[#555] uppercase tracking-widest text-xs">Weight</span>
+                      <span className="text-[#888888]">{product.specs.weight}</span>
+                    </div>
+                  )}
+                  {product.specs.origin && (
+                    <div className="flex justify-between text-sm border-t border-[#111] pt-3">
+                      <span className="text-[#555] uppercase tracking-widest text-xs">Origin</span>
+                      <span className="text-[#888888]">{product.specs.origin}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
 
-          <VariantSelector
-            variants={product.variants}
-            storeDomain={process.env.SHOPIFY_STORE_DOMAIN ?? ''}
-            productTitle={product.title}
-            productHandle={product.handle}
-            colorSwatches={product.colorSwatches}
-          />
-
-          {product.descriptionHtml && (
-            <div
-              className="text-[#888888] mt-8 leading-snug [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-2"
-              dangerouslySetInnerHTML={{ __html: product.descriptionHtml }}
-            />
-          )}
-
-          {(product.specs.dimensions || product.specs.material || product.specs.weight || product.specs.origin) && (
-            <div className="mt-12">
-              <div className="flex flex-col gap-3">
-                {product.specs.dimensions && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-[#555] uppercase tracking-widest text-xs">Dimensions</span>
-                    <span className="text-[#888888]">{product.specs.dimensions}</span>
-                  </div>
-                )}
-                {product.specs.material && (
-                  <div className="flex justify-between text-sm border-t border-[#111] pt-3">
-                    <span className="text-[#555] uppercase tracking-widest text-xs">Material</span>
-                    <span className="text-[#888888]">{product.specs.material}</span>
-                  </div>
-                )}
-                {product.specs.weight && (
-                  <div className="flex justify-between text-sm border-t border-[#111] pt-3">
-                    <span className="text-[#555] uppercase tracking-widest text-xs">Weight</span>
-                    <span className="text-[#888888]">{product.specs.weight}</span>
-                  </div>
-                )}
-                {product.specs.origin && (
-                  <div className="flex justify-between text-sm border-t border-[#111] pt-3">
-                    <span className="text-[#555] uppercase tracking-widest text-xs">Origin</span>
-                    <span className="text-[#888888]">{product.specs.origin}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
         </div>
-
-      </div>
+      </ProductImageJumpProvider>
     </main>
   );
 }

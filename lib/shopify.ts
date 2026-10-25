@@ -97,7 +97,7 @@ export type Collection = {
 // than in Shopify: getCollections() — which feeds both the nav and the sitemap —
 // filters them out, while getCollection(handle) still fetches them by name.
 export const FEATURED_COLLECTION_HANDLE = 'featured';
-export const SHOP_ORDER_COLLECTION_HANDLE = 'shop-order';
+export const SHOP_ORDER_COLLECTION_HANDLE = 'all-products';
 
 const HIDDEN_COLLECTION_HANDLES = new Set<string>([
   FEATURED_COLLECTION_HANDLE,

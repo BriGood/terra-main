@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ShopPage() {
-  // Display order is curated in Shopify (the hidden "Shop Order" collection,
+  // Display order is curated in Shopify (the hidden "All Products" collection,
   // manual sort) so products can be dragged into place in admin without a
   // deploy. Falls back to the full catalog if that collection is missing or
   // empty, so the page is never blank.

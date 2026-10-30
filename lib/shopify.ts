@@ -608,6 +608,37 @@ export async function getPolicy(handle: string): Promise<ShopPolicy | null> {
   return all.filter(Boolean).find((p) => p!.handle === handle) ?? null;
 }
 
+// Shop metafield `custom.free_shipping_threshold` (Money), edited in admin under
+// Settings → Custom data → Shop. The Storefront API can't read shipping rates,
+// so this is a separate value the merchant keeps in sync with the free-shipping
+// minimum on the rate itself. Returns the header-ready string ("$40"), or null
+// when it's unset so the header shows nothing rather than a stale number.
+export async function getFreeShippingThreshold(): Promise<string | null> {
+  try {
+    const client = getClient();
+    const { data, errors } = await client.request(`
+      {
+        shop {
+          metafield(namespace: "custom", key: "free_shipping_threshold") { value }
+        }
+      }
+    `);
+    const value = data?.shop?.metafield?.value;
+    if (errors || !value) return null;
+    // Money metafields come back as JSON: {"amount":"40.0","currency_code":"USD"}
+    const { amount, currency_code } = JSON.parse(value) as { amount: string; currency_code: string };
+    const number = parseFloat(amount);
+    if (!Number.isFinite(number)) return null;
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency_code,
+      minimumFractionDigits: Number.isInteger(number) ? 0 : 2,
+    }).format(number);
+  } catch {
+    return null;
+  }
+}
+
 export function formatPrice(amount: string, currencyCode: string): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',

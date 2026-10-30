@@ -6,7 +6,7 @@ import NavSpacer from "./components/NavSpacer";
 import Footer from "./components/Footer";
 import { CartProvider } from "./context/CartContext";
 import { GoogleAnalytics } from "@next/third-parties/google";
-import { getCollections } from "@/lib/shopify";
+import { getCollections, getFreeShippingThreshold } from "@/lib/shopify";
 import { SITE_URL } from "@/lib/site";
 
 const inter = Inter({
@@ -75,7 +75,10 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const collections = await getCollections();
+  const [collections, freeShippingThreshold] = await Promise.all([
+    getCollections(),
+    getFreeShippingThreshold(),
+  ]);
 
   // GA4 only loads when a measurement ID is configured, so dev/preview builds
   // without NEXT_PUBLIC_GA_ID don't ship analytics or pollute the data.
@@ -106,7 +109,7 @@ export default async function RootLayout({
           }}
         />
         <CartProvider>
-          <Nav collections={collections} />
+          <Nav collections={collections} freeShippingThreshold={freeShippingThreshold} />
           <NavSpacer>{children}</NavSpacer>
           <Footer />
         </CartProvider>

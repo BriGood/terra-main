@@ -17,7 +17,13 @@ function CartIcon() {
   );
 }
 
-export default function Nav({ collections = [] }: { collections?: CollectionListItem[] }) {
+export default function Nav({
+  collections = [],
+  freeShippingThreshold = null,
+}: {
+  collections?: CollectionListItem[];
+  freeShippingThreshold?: string | null;
+}) {
   const sortedCollections = [...collections].sort((a, b) => a.title.localeCompare(b.title));
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -28,9 +34,14 @@ export default function Nav({ collections = [] }: { collections?: CollectionList
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-black border-b border-[#222]">
-      {/* Announcement bar */}
+      {/* Announcement bar. The bar keeps its height when the threshold is unset
+          so NavSpacer's offset stays right; only the text drops out. */}
       <div className="h-8 flex items-center justify-center border-b border-[#222]">
-        <p className="text-xs uppercase tracking-widest text-[#888888]">Free shipping on orders over $50</p>
+        {freeShippingThreshold && (
+          <p className="text-xs uppercase tracking-widest text-[#888888]">
+            Free shipping on orders over {freeShippingThreshold}
+          </p>
+        )}
       </div>
 
       <div className="px-3 lg:px-20 h-16 flex items-center justify-between">

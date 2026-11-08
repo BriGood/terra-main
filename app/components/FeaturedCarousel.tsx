@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import Link from 'next/link';
+import Link from '@/app/components/HoverPrefetchLink';
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { formatPrice, type ProductListItem } from '@/lib/shopify';
 import { ChevronLeftIcon, ChevronRightIcon } from './Icons';

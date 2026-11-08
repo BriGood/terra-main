@@ -9,6 +9,13 @@ import { GoogleAnalytics } from "@next/third-parties/google";
 import { getCollections, getFreeShippingThreshold } from "@/lib/shopify";
 import { SITE_URL } from "@/lib/site";
 
+// Every page is served from the OpenNext cache and re-rendered in the
+// background at most once per 15 minutes. Product and collection edits refresh
+// sooner via the Shopify webhook (app/api/shopify-webhook); this window is the
+// backstop for changes no webhook reports, like stock levels. The lowest
+// revalidate in a route wins, so this caps every page beneath it.
+export const revalidate = 900;
+
 const inter = Inter({
   subsets: ["latin"],
 });
@@ -108,7 +115,10 @@ export default async function RootLayout({
             __html: JSON.stringify(organizationJsonLd).replace(/</g, "\\u003c"),
           }}
         />
-        <CartProvider>
+        <CartProvider
+          storeDomain={process.env.SHOPIFY_STORE_DOMAIN ?? ""}
+          storefrontToken={process.env.SHOPIFY_STOREFRONT_TOKEN ?? ""}
+        >
           <Nav collections={collections} freeShippingThreshold={freeShippingThreshold} />
           <NavSpacer>{children}</NavSpacer>
           <Footer />

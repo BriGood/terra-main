@@ -1,7 +1,15 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { Cart } from '@/lib/shopify';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
+import {
+  type Cart,
+  createCartClient,
+  getCart,
+  createCart,
+  addCartLine,
+  updateCartLine,
+  removeCartLine,
+} from '@/lib/shopify-cart';
 
 type CartContextType = {
   cart: Cart | null;
@@ -15,32 +23,32 @@ type CartContextType = {
 
 const CartContext = createContext<CartContextType | null>(null);
 
-async function cartFetch(action: string, params: Record<string, unknown>): Promise<Cart> {
-  const res = await fetch('/api/cart', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, ...params }),
-  });
-  const { cart, error } = await res.json();
-  if (error) throw new Error(error);
-  return cart;
-}
-
-export function CartProvider({ children }: { children: ReactNode }) {
+export function CartProvider({
+  children,
+  storeDomain,
+  storefrontToken,
+}: {
+  children: ReactNode;
+  storeDomain: string;
+  storefrontToken: string;
+}) {
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(false);
+  const client = useMemo(() => createCartClient(storeDomain, storefrontToken), [storeDomain, storefrontToken]);
 
   useEffect(() => {
     const cartId = localStorage.getItem('shopify_cart_id');
     if (cartId) {
-      fetch(`/api/cart?cartId=${encodeURIComponent(cartId)}`)
-        .then((r) => r.json())
-        .then(({ cart: c }) => {
+      getCart(client, cartId)
+        .then((c) => {
           if (c) setCart(c);
           else localStorage.removeItem('shopify_cart_id');
-        });
+        })
+        // A network or API error isn't proof the cart is gone, so keep the id
+        // and try again on the next page load.
+        .catch(() => {});
     }
-  }, []);
+  }, [client]);
 
   const addToCart = useCallback(async (merchandiseId: string, quantity: number) => {
     setLoading(true);
@@ -48,38 +56,38 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const cartId = localStorage.getItem('shopify_cart_id');
       let updated: Cart;
       if (cartId) {
-        updated = await cartFetch('add', { cartId, merchandiseId, quantity });
+        updated = await addCartLine(client, cartId, merchandiseId, quantity);
       } else {
-        updated = await cartFetch('create', { merchandiseId, quantity });
+        updated = await createCart(client, merchandiseId, quantity);
         localStorage.setItem('shopify_cart_id', updated.id);
       }
       setCart(updated);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [client]);
 
   const updateQuantity = useCallback(async (lineId: string, quantity: number) => {
     if (!cart) return;
     setLoading(true);
     try {
-      const updated = await cartFetch('update', { cartId: cart.id, lineId, quantity });
+      const updated = await updateCartLine(client, cart.id, lineId, quantity);
       setCart(updated);
     } finally {
       setLoading(false);
     }
-  }, [cart]);
+  }, [client, cart]);
 
   const removeItem = useCallback(async (lineId: string) => {
     if (!cart) return;
     setLoading(true);
     try {
-      const updated = await cartFetch('remove', { cartId: cart.id, lineId });
+      const updated = await removeCartLine(client, cart.id, lineId);
       setCart(updated);
     } finally {
       setLoading(false);
     }
-  }, [cart]);
+  }, [client, cart]);
 
   const itemCount = cart?.lines.reduce((sum, line) => sum + line.quantity, 0) ?? 0;
 

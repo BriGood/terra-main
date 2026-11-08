@@ -1,7 +1,7 @@
 import { cache } from 'react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getProduct } from '@/lib/shopify';
+import { getProduct, getProducts } from '@/lib/shopify';
 import { SITE_URL } from '@/lib/site';
 import ProductImageCarousel from '@/app/components/ProductImageCarousel';
 import VariantSelector from '@/app/components/VariantSelector';
@@ -10,6 +10,14 @@ import Breadcrumbs from '@/app/components/Breadcrumbs';
 
 // Deduped so generateMetadata and the page share a single Shopify request per render.
 const loadProduct = cache(getProduct);
+
+// Prerenders the catalog at build so product pages are served from cache like
+// the rest of the site. Products added later render on their first visit and
+// are cached from then on; a Shopify outage at build just defers them all.
+export async function generateStaticParams() {
+  const products = await getProducts().catch(() => []);
+  return products.map((p) => ({ slug: p.handle }));
+}
 
 function metaDescription(product: { seo: { description: string | null }; description: string }): string {
   const text = product.seo.description || product.description || '';

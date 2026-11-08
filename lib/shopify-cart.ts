@@ -68,19 +68,42 @@ function parseCart(cart: Record<string, unknown>): Cart {
   };
 }
 
-export async function createCart(client: StorefrontApiClient, merchandiseId: string, quantity: number): Promise<Cart> {
+// Pages are cached for up to an hour, so a shopper can try to add something
+// that has sold out since. Shopify still accepts the add, but caps the line at
+// the stock left and says so in `warnings`: MERCHANDISE_NOT_ENOUGH_STOCK when
+// some was added, MERCHANDISE_OUT_OF_STOCK when none was — and in that case it
+// leaves a quantity-0 line in the cart, which is removed here before anyone
+// sees it. Callers compare quantities before and after to tell the shopper.
+export type AddToCartResult = { cart: Cart; soldOut: boolean };
+
+type CartPayload = { cart: Record<string, unknown>; warnings: { code: string }[] };
+
+async function settleAdd(client: StorefrontApiClient, payload: CartPayload): Promise<AddToCartResult> {
+  let cart = parseCart(payload.cart);
+  const soldOut = payload.warnings.some((w) => w.code === 'MERCHANDISE_OUT_OF_STOCK');
+  const emptyLineIds = cart.lines.filter((line) => line.quantity === 0).map((line) => line.id);
+  if (emptyLineIds.length > 0) cart = await removeCartLines(client, cart.id, emptyLineIds);
+  return { cart, soldOut };
+}
+
+export async function createCart(
+  client: StorefrontApiClient,
+  merchandiseId: string,
+  quantity: number
+): Promise<AddToCartResult> {
   const { data, errors } = await client.request(
     `
     mutation CartCreate($lines: [CartLineInput!]) {
       cartCreate(input: { lines: $lines }) {
         cart { ${CART_FIELDS} }
+        warnings { code }
       }
     }
   `,
     { variables: { lines: [{ merchandiseId, quantity }] } }
   );
   if (errors) throw new Error(errors.message);
-  return parseCart(data.cartCreate.cart);
+  return settleAdd(client, data.cartCreate);
 }
 
 export async function addCartLine(
@@ -88,19 +111,20 @@ export async function addCartLine(
   cartId: string,
   merchandiseId: string,
   quantity: number
-): Promise<Cart> {
+): Promise<AddToCartResult> {
   const { data, errors } = await client.request(
     `
     mutation CartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
       cartLinesAdd(cartId: $cartId, lines: $lines) {
         cart { ${CART_FIELDS} }
+        warnings { code }
       }
     }
   `,
     { variables: { cartId, lines: [{ merchandiseId, quantity }] } }
   );
   if (errors) throw new Error(errors.message);
-  return parseCart(data.cartLinesAdd.cart);
+  return settleAdd(client, data.cartLinesAdd);
 }
 
 export async function updateCartLine(
@@ -124,6 +148,10 @@ export async function updateCartLine(
 }
 
 export async function removeCartLine(client: StorefrontApiClient, cartId: string, lineId: string): Promise<Cart> {
+  return removeCartLines(client, cartId, [lineId]);
+}
+
+async function removeCartLines(client: StorefrontApiClient, cartId: string, lineIds: string[]): Promise<Cart> {
   const { data, errors } = await client.request(
     `
     mutation CartLinesRemove($cartId: ID!, $lineIds: [ID!]!) {
@@ -132,7 +160,7 @@ export async function removeCartLine(client: StorefrontApiClient, cartId: string
       }
     }
   `,
-    { variables: { cartId, lineIds: [lineId] } }
+    { variables: { cartId, lineIds } }
   );
   if (errors) throw new Error(errors.message);
   return parseCart(data.cartLinesRemove.cart);

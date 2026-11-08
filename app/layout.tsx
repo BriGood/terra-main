@@ -10,11 +10,12 @@ import { getCollections, getFreeShippingThreshold } from "@/lib/shopify";
 import { SITE_URL } from "@/lib/site";
 
 // Every page is served from the OpenNext cache and re-rendered in the
-// background at most once per 15 minutes. Product and collection edits refresh
+// background at most once an hour. Product and collection edits refresh
 // sooner via the Shopify webhook (app/api/shopify-webhook); this window is the
-// backstop for changes no webhook reports, like stock levels. The lowest
+// backstop for changes no webhook reports, like stock levels. A shopper who
+// adds something that sold out in between is told so by AddToCart. The lowest
 // revalidate in a route wins, so this caps every page beneath it.
-export const revalidate = 900;
+export const revalidate = 3600;
 
 const inter = Inter({
   subsets: ["latin"],

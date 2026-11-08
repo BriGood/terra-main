@@ -11,11 +11,19 @@ import {
   removeCartLine,
 } from '@/lib/shopify-cart';
 
+// What an add actually did, for the button to report. `limited` means Shopify
+// had less stock than requested: `added` went in this time (possibly 0) and
+// `inCart` is now the most the shopper can have.
+export type AddToCartOutcome =
+  | { status: 'added' }
+  | { status: 'sold-out' }
+  | { status: 'limited'; added: number; inCart: number };
+
 type CartContextType = {
   cart: Cart | null;
   itemCount: number;
   loading: boolean;
-  addToCart: (merchandiseId: string, quantity: number) => Promise<void>;
+  addToCart: (merchandiseId: string, quantity: number) => Promise<AddToCartOutcome>;
   updateQuantity: (lineId: string, quantity: number) => Promise<void>;
   removeItem: (lineId: string) => Promise<void>;
   checkoutUrl: string | null;
@@ -50,22 +58,28 @@ export function CartProvider({
     }
   }, [client]);
 
-  const addToCart = useCallback(async (merchandiseId: string, quantity: number) => {
+  const addToCart = useCallback(async (merchandiseId: string, quantity: number): Promise<AddToCartOutcome> => {
     setLoading(true);
     try {
+      const quantityOf = (c: Cart | null) =>
+        c?.lines.find((line) => line.merchandise.id === merchandiseId)?.quantity ?? 0;
+      const before = quantityOf(cart);
+
       const cartId = localStorage.getItem('shopify_cart_id');
-      let updated: Cart;
-      if (cartId) {
-        updated = await addCartLine(client, cartId, merchandiseId, quantity);
-      } else {
-        updated = await createCart(client, merchandiseId, quantity);
-        localStorage.setItem('shopify_cart_id', updated.id);
-      }
+      const { cart: updated, soldOut } = cartId
+        ? await addCartLine(client, cartId, merchandiseId, quantity)
+        : await createCart(client, merchandiseId, quantity);
+      if (!cartId) localStorage.setItem('shopify_cart_id', updated.id);
       setCart(updated);
+
+      if (soldOut) return { status: 'sold-out' };
+      const inCart = quantityOf(updated);
+      const added = inCart - before;
+      return added >= quantity ? { status: 'added' } : { status: 'limited', added, inCart };
     } finally {
       setLoading(false);
     }
-  }, [client]);
+  }, [client, cart]);
 
   const updateQuantity = useCallback(async (lineId: string, quantity: number) => {
     if (!cart) return;

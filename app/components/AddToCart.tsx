@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useCart } from '@/app/context/CartContext';
+import { useCart, type AddToCartOutcome } from '@/app/context/CartContext';
 import ExpressCheckout from './ExpressCheckout';
 
 type Props = {
@@ -49,9 +49,22 @@ function QuantitySelector({
 const ADD_TO_CART_CLASSES =
   'flex-1 bg-white border border-white text-black text-sm font-bold uppercase tracking-widest hover:bg-[#d9d9d9] hover:border-[#d9d9d9] transition-colors disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer';
 
+// The page can be up to an hour old, so stock may have run out since it was
+// rendered; this explains what Shopify actually let into the cart.
+function stockNotice(outcome: Exclude<AddToCartOutcome, { status: 'added' }>): string {
+  if (outcome.status === 'sold-out') return 'Sorry, this just sold out.';
+  const { added, inCart } = outcome;
+  if (added === 0) return `You already have all ${inCart} remaining in your cart.`;
+  if (added === inCart) return `Only ${inCart} left, so we added ${inCart} to your cart.`;
+  return `Only ${inCart} left. Your cart now has all ${inCart}.`;
+}
+
 export default function AddToCart({ merchandiseId, availableForSale, checkoutUrl, storeDomain }: Props) {
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
+  // Keyed by variant so picking another colour clears them without an effect.
+  const [notice, setNotice] = useState<{ variant: string; text: string } | null>(null);
+  const [soldOutVariant, setSoldOutVariant] = useState<string | null>(null);
   const [showSticky, setShowSticky] = useState(false);
   const sectionRef = useRef<HTMLDivElement>(null);
   const { addToCart, loading } = useCart();
@@ -106,12 +119,18 @@ export default function AddToCart({ merchandiseId, availableForSale, checkoutUrl
   }, []);
 
   async function handleAddToCart() {
-    await addToCart(merchandiseId, quantity);
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
+    const outcome = await addToCart(merchandiseId, quantity);
+    if (outcome.status === 'sold-out') setSoldOutVariant(merchandiseId);
+    setNotice(outcome.status === 'added' ? null : { variant: merchandiseId, text: stockNotice(outcome) });
+    if (outcome.status === 'added' || (outcome.status === 'limited' && outcome.added > 0)) {
+      setAdded(true);
+      setTimeout(() => setAdded(false), 2000);
+    }
   }
 
-  const buttonLabel = !availableForSale ? 'Sold Out' : added ? 'Added!' : loading ? 'Adding...' : 'Add to Cart';
+  const soldOut = !availableForSale || soldOutVariant === merchandiseId;
+  const noticeText = notice?.variant === merchandiseId ? notice.text : null;
+  const buttonLabel = soldOut ? 'Sold Out' : added ? 'Added!' : loading ? 'Adding...' : 'Add to Cart';
 
   return (
     <>
@@ -121,12 +140,16 @@ export default function AddToCart({ merchandiseId, availableForSale, checkoutUrl
           <QuantitySelector quantity={quantity} onChange={setQuantity} />
           <button
             onClick={handleAddToCart}
-            disabled={!availableForSale || loading}
+            disabled={soldOut || loading}
             className={ADD_TO_CART_CLASSES}
           >
             {buttonLabel}
           </button>
         </div>
+
+        <p role="status" className={noticeText ? 'text-sm text-[#d9d9d9]' : 'sr-only'}>
+          {noticeText}
+        </p>
 
         <ExpressCheckout
           variantId={merchandiseId.split('/').pop() ?? ''}
@@ -141,13 +164,19 @@ export default function AddToCart({ merchandiseId, availableForSale, checkoutUrl
           showSticky ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
+        {/* Repeated here: the in-page notice is off screen whenever this bar shows. */}
+        {noticeText && (
+          <p className="max-w-screen-xl mx-auto text-sm text-[#d9d9d9] mb-2" aria-hidden="true">
+            {noticeText}
+          </p>
+        )}
         {/* items-stretch, not items-center — the quantity control has no height
             of its own, so centring left it shorter than the button beside it. */}
         <div className="max-w-screen-xl mx-auto flex items-stretch gap-3 h-12">
           <QuantitySelector quantity={quantity} onChange={setQuantity} />
           <button
             onClick={handleAddToCart}
-            disabled={!availableForSale || loading}
+            disabled={soldOut || loading}
             className={`${ADD_TO_CART_CLASSES} h-full`}
           >
             {buttonLabel}

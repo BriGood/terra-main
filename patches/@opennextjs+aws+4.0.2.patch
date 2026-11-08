@@ -1,19 +1,24 @@
 diff --git a/node_modules/@opennextjs/aws/dist/core/routing/cacheInterceptor.js b/node_modules/@opennextjs/aws/dist/core/routing/cacheInterceptor.js
-index b88e58f..199bfbe 100644
+index b88e58f..9318bce 100644
 --- a/node_modules/@opennextjs/aws/dist/core/routing/cacheInterceptor.js
 +++ b/node_modules/@opennextjs/aws/dist/core/routing/cacheInterceptor.js
-@@ -207,12 +207,12 @@ export async function cacheInterceptor(event) {
+@@ -205,14 +205,16 @@ export async function cacheInterceptor(event) {
+     // We also need to remove trailing slash
+     localizedPath = localizedPath.replace(/\/$/, "");
      // Then we decode the path params
-     localizedPath = decodePathParams(localizedPath);
+-    localizedPath = decodePathParams(localizedPath);
++    // The root path is "" once its trailing slash is gone; restore it so the
++    // prerender manifest (and so the revalidate window) is found for "/".
++    localizedPath = decodePathParams(localizedPath) || "/";
      debug("Checking cache for", localizedPath, PrerenderManifest);
 -    const isISR = Object.keys(PrerenderManifest?.routes ?? {}).includes(localizedPath ?? "/") ||
-+    const isISR = Object.keys(PrerenderManifest?.routes ?? {}).includes(localizedPath || "/") ||
++    const isISR = Object.keys(PrerenderManifest?.routes ?? {}).includes(localizedPath) ||
          Object.values(PrerenderManifest?.dynamicRoutes ?? {}).some((dr) => new RegExp(dr.routeRegex).test(localizedPath));
      debug("isISR", isISR);
      if (isISR) {
          try {
 -            const cachedData = await globalThis.incrementalCache.get(localizedPath ?? "/index");
-+            const cachedData = await globalThis.incrementalCache.get(localizedPath || "/index");
++            const cachedData = await globalThis.incrementalCache.get(localizedPath === "/" ? "/index" : localizedPath);
              debug("cached data in interceptor", cachedData);
              if (!cachedData?.value) {
                  return event;

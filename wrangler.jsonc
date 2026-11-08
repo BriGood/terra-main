@@ -4,10 +4,34 @@
 	"name": "terra-landing",
 	"compatibility_date": "2026-05-18",
 	"compatibility_flags": ["nodejs_compat"],
+	// Workers Logs: keeps request logs (CPU time, errors such as 1102) searchable
+	// in the dashboard's Observability tab instead of only via `wrangler tail`.
+	"observability": {
+		"enabled": true
+	},
 	"assets": {
 		"directory": ".open-next/assets",
 		"binding": "ASSETS"
 	},
+	// Rendered-page cache for OpenNext (see open-next.config.ts).
+	"kv_namespaces": [
+		{
+			"binding": "NEXT_INC_CACHE_KV",
+			"id": "7bad0811ab044c109e887444c4b2b3d8"
+		},
+		{
+			// Records when the Shopify webhook last invalidated the site.
+			"binding": "NEXT_TAG_CACHE_KV",
+			"id": "ed835195b2904dfbac8b412dd22fe854"
+		}
+	],
+	// Lets the memory queue ask this Worker to re-render a stale page.
+	"services": [
+		{
+			"binding": "WORKER_SELF_REFERENCE",
+			"service": "terra-landing"
+		}
+	],
 	"vars": {
 		"SHOPIFY_STORE_DOMAIN": "terra-fieldworks-2.myshopify.com"
 	}

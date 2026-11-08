@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import Link from 'next/link';
+import Link from '@/app/components/HoverPrefetchLink';
 import { useCart } from '@/app/context/CartContext';
 import { formatPrice } from '@/lib/shopify';
 import Breadcrumbs from '@/app/components/Breadcrumbs';

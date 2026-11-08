@@ -9,6 +9,12 @@ function titleFromSlug(slug: string): string {
     .join(' ');
 }
 
+// No posts to prerender yet; an empty list still opts the route into caching,
+// so each slug renders once on first visit instead of on every request.
+export async function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata({
   params,
 }: {

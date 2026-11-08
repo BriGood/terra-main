@@ -2,15 +2,19 @@ import { cache } from 'react';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
-import Link from 'next/link';
-import { getCollection, formatPrice, isHiddenCollection } from '@/lib/shopify';
+import Link from '@/app/components/HoverPrefetchLink';
+import { getCollection, getCollections, formatPrice, isHiddenCollection } from '@/lib/shopify';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import FitHeading from '@/app/components/FitHeading';
 
-export const dynamic = 'force-dynamic';
-
 // Deduped so generateMetadata and the page share a single Shopify request per render.
 const loadCollection = cache(getCollection);
+
+// Prerendered at build and cached; collections added later render on first visit.
+export async function generateStaticParams() {
+  const collections = await getCollections();
+  return collections.map((c) => ({ handle: c.handle }));
+}
 
 export async function generateMetadata({
   params,

@@ -1,14 +1,12 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
-import Link from 'next/link';
+import Link from '@/app/components/HoverPrefetchLink';
 import {
   getProducts,
   getCollection,
   formatPrice,
   SHOP_ORDER_COLLECTION_HANDLE,
 } from '@/lib/shopify';
-
-export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Shop',

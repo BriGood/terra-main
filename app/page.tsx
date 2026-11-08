@@ -1,9 +1,7 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/app/components/HoverPrefetchLink';
 import { getProducts, getCollection, FEATURED_COLLECTION_HANDLE } from '@/lib/shopify';
 import FeaturedCarousel from '@/app/components/FeaturedCarousel';
-
-export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   alternates: { canonical: '/' },

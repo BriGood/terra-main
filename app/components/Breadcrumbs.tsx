@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/app/components/HoverPrefetchLink';
 import { SITE_URL } from '@/lib/site';
 
 type Crumb = { label: string; href?: string };

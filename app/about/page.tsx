@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import Link from '@/app/components/HoverPrefetchLink';
 
 export const metadata: Metadata = {
   title: 'About',
